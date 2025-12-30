@@ -56,7 +56,7 @@ cd ~/ros2_ws/src
 git clone -b humble https://github.com/CCNYRoboticsLab/imu_tools.git
 ```
 
-⚠️ **IMPORTANT:** DualSense does not publish magnetometer data!  
+**IMPORTANT:** DualSense does not publish magnetometer data!  
 Edit the configuration file:
 
 ```bash
@@ -75,9 +75,6 @@ cd ~/ros2_ws
 colcon build --symlink-install
 source install/setup.bash
 ```
-
-**Why `--symlink-install`?**  
-Creates symbolic links instead of copying files. Python changes and config file edits take effect immediately without rebuilding!
 
 ## Calibration
 
@@ -112,11 +109,6 @@ This generates `dualsense_calibration_simple.json` with:
 # 2. Pair via system Bluetooth settings
 ```
 
-Verify connection:
-```bash
-ls /dev/hidraw*
-```
-
 ### 6. Run the Nodes
 
 **Terminal 1 - DualSense IMU Publisher:**
@@ -128,7 +120,7 @@ ros2 run dualsense_teleop dualsense_publish_imu
 **Terminal 2 - IMU Filter (Madgwick):**
 ```bash
 source ~/ros2_ws/install/setup.bash
-ros2 run imu_filter_madgwick imu_filter_madgwick_node --ros-args --params-file ~/ros2_ws/src/imu_tools/imu_filter_madgwick/config/imu_filter.yaml
+ros2 launch imu_filter_madgwick imu_filter.launch.py
 ```
 
 **Terminal 3 - RViz2 Visualization:**
@@ -138,9 +130,8 @@ rviz2
 ```
 
 In RViz2:
-1. Set **Fixed Frame** to `odom`
-2. Add → **TF** → Enable to see coordinate frames
-3. Add → **Imu** → Set topic to `/imu/data` to visualize orientation
+1. Add → **TF** → Enable to see coordinate frames
+2. Set **Fixed Frame** to `odom`
 
 ### Optional: Custom Rotation
 
@@ -182,24 +173,11 @@ Key parameters:
 
 ## Troubleshooting
 
-### Controller not detected
-```bash
-# Check permissions
-ls -l /dev/hidraw*
-# Add user to input group if needed
-sudo usermod -a -G input $USER
-```
-
 ### Calibration file not found
 ```bash
 # Make sure you ran calibrate_simple.py and the JSON file exists
 ls ~/ros2_ws/src/dualsense_teleop/dualsense_teleop/dualsense_calibration/dualsense_calibration_simple.json
 ```
-
-### IMU orientation drifts over time
-- **Expected behavior!** Without magnetometer, yaw (Z-axis rotation) will drift
-- Only roll and pitch are corrected by gravity
-- Consider using external position tracking if absolute orientation is needed
 
 ### Config file changes not taking effect
 ```bash
