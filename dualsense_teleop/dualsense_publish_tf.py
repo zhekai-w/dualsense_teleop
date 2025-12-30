@@ -131,7 +131,7 @@ class DualSenseTFPublisher(Node):
             return
         
         # Read and scale sensors
-        gyro_scale = 2000.0 / 32768.0
+        gyro_scale = 50.0 / 32768.0
         accel_scale = 4.0 / 32768.0
         
         # Gyro (degrees/sec) with bias removal

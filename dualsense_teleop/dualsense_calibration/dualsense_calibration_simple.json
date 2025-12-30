@@ -1,0 +1,66 @@
+{
+  "accelerometer_y": {
+    "scale": 806.7836235119989,
+    "variance": 0.00017913871354241506,
+    "covariance": [
+      0.00017913871354241506,
+      0,
+      0,
+      0,
+      0.00017913871354241506,
+      0,
+      0,
+      0,
+      0.00017913871354241506
+    ],
+    "details": {
+      "scale_y": 806.7836235119989,
+      "avg_y": 7911.844621513944,
+      "std_y": 10.798210756140998,
+      "std_ms2": 0.013384271124809713,
+      "variance_ms2": 0.00017913871354241506,
+      "num_samples": 251
+    }
+  },
+  "gyroscope_y": {
+    "scale": 972.5114435630983,
+    "bias": -0.11158798283261803,
+    "variance": 4.1289799337812334e-06,
+    "covariance": [
+      4.1289799337812334e-06,
+      0,
+      0,
+      0,
+      4.1289799337812334e-06,
+      0,
+      0,
+      0,
+      4.1289799337812334e-06
+    ],
+    "details": {
+      "scale_y": 972.5114435630983,
+      "raw_to_degree_factor": 4096.277777777777,
+      "integrated_value": 368665,
+      "duration": 1.7527624309392265,
+      "sample_rate": 241.33333333333334,
+      "start_idx": 62,
+      "stop_idx": 484,
+      "num_rotation_samples": 423,
+      "noise_mean": -0.11158798283261803,
+      "noise_threshold": 1.9761327082866613,
+      "std_rads": 0.0020319891569054284,
+      "variance_rads": 4.1289799337812334e-06,
+      "measured_angle": 89.99999999999999,
+      "expected_angle": 90.0
+    }
+  },
+  "timestamp": "2025-12-29 23:20:22",
+  "notes": {
+    "method": "Single-axis (Y) calibration",
+    "accel_units": "Scale is in LSB/(m/s\u00b2). To convert: raw_y / scale. Output is in m/s\u00b2.",
+    "gyro_units": "Scale is in LSB/(rad/s). To convert: (raw_y - bias) / scale. Output is in rad/s.",
+    "variance_units": "Variance for accel in (m/s\u00b2)\u00b2, for gyro in (rad/s)\u00b2",
+    "covariance": "Diagonal 3x3 covariance matrix assuming all axes have same variance",
+    "coordinate_system": "Y-axis points UP when controller is flat, buttons facing up"
+  }
+}

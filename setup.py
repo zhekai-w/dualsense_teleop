@@ -25,6 +25,7 @@ setup(
     entry_points={
         'console_scripts': [
             'dualsense_publish_tf = dualsense_teleop.dualsense_publish_tf:main',
+            'dualsense_publish_imu = dualsense_teleop.dualsense_publish_imu:main',
         ],
     },
 )
