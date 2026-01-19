@@ -1,4 +1,6 @@
 from setuptools import find_packages, setup
+from glob import glob
+import os
 
 package_name = 'dualsense_teleop'
 
@@ -10,6 +12,8 @@ setup(
         ('share/ament_index/resource_index/packages',
             ['resource/' + package_name]),
         ('share/' + package_name, ['package.xml']),
+        (os.path.join('share', package_name, 'launch'), glob('launch/*.launch.py')),
+        (os.path.join('share', package_name, 'config'), glob('config/*.yaml')),
     ],
     install_requires=['setuptools'],
     zip_safe=True,
@@ -26,6 +30,7 @@ setup(
         'console_scripts': [
             'dualsense_publish_tf = dualsense_teleop.dualsense_publish_tf:main',
             'dualsense_publish_imu = dualsense_teleop.dualsense_publish_imu:main',
+            'dualsense_pose_tracking = dualsense_teleop.dualsense_pose_tracking:main',
         ],
     },
 )
