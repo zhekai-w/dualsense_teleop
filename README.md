@@ -12,7 +12,7 @@ ROS2 package for publishing calibrated IMU data from Sony DualSense (PS5) contro
 
 ## Prerequisites
 
-- ROS2 Humble
+- Test on ROS2 Humble
 - Python 3.10+
 - Sony DualSense Controller (PS5 controller)
 
@@ -36,7 +36,7 @@ pip install -e .
 
 **Note:** You may need to set up udev rules for USB access. See the [gyroscope/accelerometer section](https://github.com/yesbotics/dualsense-controller-python/tree/main?tab=readme-ov-file#gyroscope-accelerometer-and-orientation) for details.
 
-### 2. Set up ROS2 Humble Workspace
+### 2. Set up ROS2 Workspace
 
 ```bash
 # Create workspace
@@ -53,7 +53,7 @@ This package requires `imu_filter_madgwick` for orientation estimation:
 
 ```bash
 cd ~/ros2_ws/src
-git clone -b humble https://github.com/CCNYRoboticsLab/imu_tools.git
+git clone -b $ROS_DISTRO https://github.com/CCNYRoboticsLab/imu_tools.git
 ```
 
 **IMPORTANT:** DualSense does not publish magnetometer data!  
@@ -68,7 +68,18 @@ Set:
 use_mag: false
 ```
 
-### 4. Build the Workspace
+### 4. Clone Universal Robots Packages
+
+For UR5 robot support, clone the UR description and MoveIt config packages:
+
+```bash
+cd ~/ros2_ws/src
+git clone -b $ROS_DISTRO https://github.com/UniversalRobots/Universal_Robots_ROS2_Description.git
+git clone -b $ROS_DISTRO https://github.com/UniversalRobots/Universal_Robots_ROS2_Driver.git
+sudo apt install ros-$ROS_DISTRO-moveit
+```
+
+### 5. Build the Workspace
 
 ```bash
 cd ~/ros2_ws
@@ -96,7 +107,7 @@ This generates `dualsense_calibration_simple.json` with:
 
 ## Usage
 
-### 5. Connect DualSense Controller
+### 6. Connect DualSense Controller
 
 **Via USB:**
 ```bash
@@ -109,29 +120,20 @@ This generates `dualsense_calibration_simple.json` with:
 # 2. Pair via system Bluetooth settings
 ```
 
-### 6. Run the Nodes
+### 7. Run the Nodes
 
-**Terminal 1 - DualSense IMU Publisher:**
+**Terminal 1 - DualSense Nodes:**
+inside your ROS2 workspace
 ```bash
-source ~/ros2_ws/install/setup.bash
-ros2 run dualsense_teleop dualsense_publish_imu
+source ./install/setup.bash
+ros2 launch dualsense_teleop dualsense_pose_tracking.launch.py
 ```
 
-**Terminal 2 - IMU Filter (Madgwick):**
+**Terminal 2 - UR5 Arm Teleoperation:**
 ```bash
-source ~/ros2_ws/install/setup.bash
-ros2 launch imu_filter_madgwick imu_filter.launch.py
+source ./install/setup.bash
+ros2 launch dualsense_teleop ur5_pose_tracking.launch.py
 ```
-
-**Terminal 3 - RViz2 Visualization:**
-```bash
-source ~/ros2_ws/install/setup.bash
-rviz2
-```
-
-In RViz2:
-1. Add → **TF** → Enable to see coordinate frames
-2. Set **Fixed Frame** to `odom`
 
 ### Optional: Custom Rotation
 
@@ -169,7 +171,7 @@ Key parameters:
 - `use_mag: false` - **Must be false** (DualSense has no magnetometer)
 - `gain: 0.1` - Filter gain (lower = smoother, less noise)
 - `world_frame: "enu"` - Coordinate convention
-- `fixed_frame: "odom"` - Reference frame name
+- `fixed_frame: "world"` - Reference frame name
 
 ## Troubleshooting
 
@@ -177,15 +179,6 @@ Key parameters:
 ```bash
 # Make sure you ran calibrate_simple.py and the JSON file exists
 ls ~/ros2_ws/src/dualsense_teleop/dualsense_teleop/dualsense_calibration/dualsense_calibration_simple.json
-```
-
-### Config file changes not taking effect
-```bash
-# Rebuild with --symlink-install
-cd ~/ros2_ws
-colcon build --symlink-install
-# Or edit the installed version directly (temporary)
-nano install/imu_filter_madgwick/share/imu_filter_madgwick/config/imu_filter.yaml
 ```
 
 ## Data Format
