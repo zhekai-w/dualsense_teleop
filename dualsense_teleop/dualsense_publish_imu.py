@@ -9,7 +9,8 @@ as sensor_msgs/msg/Imu on topic "imu/data_raw"
 import rclpy
 from rclpy.node import Node
 from sensor_msgs.msg import Imu
-from dualsense_controller import DualSenseController, Gyroscope, Accelerometer
+from std_msgs.msg import Float32
+from dualsense_controller import DualSenseController, Gyroscope, Accelerometer, Number
 import json
 import os
 import threading
@@ -37,6 +38,9 @@ class DualSenseImuPublisher(Node):
 
         # Publisher for IMU data
         self.imu_publisher = self.create_publisher(Imu, 'imu/data_raw', 10)
+
+        # Publisher for R2 trigger value
+        self.r2_trigger_publisher = self.create_publisher(Float32, 'dualsense/r2_trigger', 10)
 
         # Load calibration
         self.calibration = None
@@ -68,6 +72,7 @@ class DualSenseImuPublisher(Node):
         # Latest sensor data
         self.latest_gyro = None
         self.latest_accel = None
+        self.latest_r2_trigger = 0
 
         # Initialize DualSense controller
         self.get_logger().info('Initializing DualSense controller...')
@@ -81,6 +86,7 @@ class DualSenseImuPublisher(Node):
         # Register callbacks
         self.controller.gyroscope.on_change(self._on_gyroscope_change)
         self.controller.accelerometer.on_change(self._on_accelerometer_change)
+        self.controller.right_trigger.on_change(self._on_right_trigger_change)
 
         # Activate controller
         self.controller.activate()
@@ -123,6 +129,15 @@ class DualSenseImuPublisher(Node):
         """Callback for accelerometer data."""
         with self.data_lock:
             self.latest_accel = accelerometer
+
+    def _on_right_trigger_change(self, value: Number):
+        """Callback for R2 trigger data."""
+        with self.data_lock:
+            self.latest_r2_trigger = value
+        # Publish R2 trigger value immediately
+        msg = Float32()
+        msg.data = float(value)
+        self.r2_trigger_publisher.publish(msg)
 
     def convert_gyro_to_rad_per_sec(self, gyro: Gyroscope):
         """Convert raw gyro values to rad/s using calibration."""

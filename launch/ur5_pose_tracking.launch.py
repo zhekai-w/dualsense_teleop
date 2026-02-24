@@ -1,4 +1,3 @@
-import os
 from launch import LaunchDescription
 from launch.actions import DeclareLaunchArgument
 from launch.substitutions import LaunchConfiguration, PathJoinSubstitution
@@ -8,6 +7,8 @@ from launch_ros.parameter_descriptions import ParameterValue
 from ament_index_python.packages import get_package_share_directory
 from launch_param_builder import ParameterBuilder
 from launch.substitutions import Command, FindExecutable
+from launch.conditions import IfCondition, UnlessCondition
+from launch_ros.descriptions import ParameterFile
 
 
 def generate_launch_description():
@@ -20,6 +21,34 @@ def generate_launch_description():
             description="Type/series of used UR robot.",
         )
     )
+    declared_arguments.append(
+        DeclareLaunchArgument(
+            "robot_ip",
+            default_value="192.168.1.100",  # Change to your robot's IP
+            # default_value="0.0.0.0",
+            description="IP address by which the robot can be reached.",
+        )
+    )
+    declared_arguments.append(
+        DeclareLaunchArgument(
+            "use_fake_hardware",
+            default_value="false",  # Set to false for real robot
+            description="Start robot with fake hardware mirroring command to its states.",
+        )
+    )
+    declared_arguments.append(
+        DeclareLaunchArgument(
+            "tf_prefix",
+            default_value='',
+            description="Prefix of the joint names, useful for multi-robot setup.",
+        )
+    )
+
+
+    robot_ip = LaunchConfiguration("robot_ip")
+    use_fake_hardware = LaunchConfiguration("use_fake_hardware")
+    tf_prefix = LaunchConfiguration("tf_prefix")
+
 
     # Initialize Arguments
     ur_type = LaunchConfiguration("ur_type")
@@ -28,8 +57,11 @@ def generate_launch_description():
     joint_limit_params = PathJoinSubstitution(
         [FindPackageShare("ur_description"), "config", ur_type, "joint_limits.yaml"]
     )
+    # kinematics_params = PathJoinSubstitution(
+    #     [FindPackageShare("ur_description"), "config", ur_type, "default_kinematics.yaml"]
+    # )
     kinematics_params = PathJoinSubstitution(
-        [FindPackageShare("ur_description"), "config", ur_type, "default_kinematics.yaml"]
+        [FindPackageShare("dualsense_teleop"), "config", "robot_calibration.yaml"]
     )
     physical_params = PathJoinSubstitution(
         [FindPackageShare("ur_description"), "config", ur_type, "physical_parameters.yaml"]
@@ -37,9 +69,25 @@ def generate_launch_description():
     visual_params = PathJoinSubstitution(
         [FindPackageShare("ur_description"), "config", ur_type, "visual_parameters.yaml"]
     )
-    initial_positions_file = PathJoinSubstitution(
-        [FindPackageShare("ur_description"), "config", "initial_positions.yaml"]
+    script_filename = PathJoinSubstitution(
+        [FindPackageShare("ur_client_library"), "resources", "external_control.urscript"]
     )
+    input_recipe_filename = PathJoinSubstitution(
+        [FindPackageShare("ur_robot_driver"), "resources", "rtde_input_recipe.txt"]
+    )
+    output_recipe_filename = PathJoinSubstitution(
+        [FindPackageShare("ur_robot_driver"), "resources", "rtde_output_recipe.txt"]
+    )
+    initial_positions_file = PathJoinSubstitution(
+        [FindPackageShare("dualsense_teleop"), "config", "ur5_initial_positions.yaml"]
+    )
+    update_rate_config_file = PathJoinSubstitution(
+        [FindPackageShare("dualsense_teleop"), "config", "ur5_update_rate.yaml"]
+    )
+    ur_contoller = PathJoinSubstitution(
+        [FindPackageShare("ur_robot_driver"), "config", "ur_controllers.yaml"]
+    )
+
 
     # Get URDF via xacro
     robot_description_content = Command(
@@ -57,7 +105,7 @@ def generate_launch_description():
             ur_type,
             " ",
             "tf_prefix:=",
-            '""',
+            tf_prefix,
             " ",
             "joint_limit_params:=",
             joint_limit_params,
@@ -71,6 +119,15 @@ def generate_launch_description():
             "visual_params:=",
             visual_params,
             " ",
+            "script_filename:=",
+            script_filename,
+            " ",
+            "input_recipe_filename:=",
+            input_recipe_filename,
+            " ",
+            "output_recipe_filename:=",
+            output_recipe_filename,
+            " ",
             "safety_limits:=",
             "false",
             " ",
@@ -81,7 +138,7 @@ def generate_launch_description():
             "20",
             " ",
             "use_fake_hardware:=",
-            "true",
+            use_fake_hardware,
             " ",
             "fake_sensor_commands:=",
             "false",
@@ -90,7 +147,7 @@ def generate_launch_description():
             initial_positions_file,
             " ",
             "robot_ip:=",
-            "0.0.0.0",
+            robot_ip,
         ]
     )
 
@@ -123,7 +180,7 @@ def generate_launch_description():
 
     # Get parameters for the Pose Tracking node
     servo_params = {
-        "moveit_servo": ParameterBuilder("moveit_servo")
+        "moveit_servo": ParameterBuilder("dualsense_teleop")
         .yaml("config/pose_tracking_settings.yaml")
         .yaml("config/ur_servo.yaml")
         .to_dict()
@@ -165,8 +222,8 @@ def generate_launch_description():
     )
 
     pose_tracking_node = Node(
-        package="moveit_servo",
-        executable="servo_pose_tracking_demo",
+        package="ur_pose_tracking",
+        executable="ur_pose_tracking",
         output="screen",
         parameters=[
             robot_description,
@@ -177,17 +234,39 @@ def generate_launch_description():
     )
 
     # ros2_control using FakeSystem as hardware
-    ros2_controllers_path = os.path.join(
-        get_package_share_directory("dualsense_teleop"),
-        "config",
-        "ur5_ros2_controllers.yaml",
+    # ros2_controllers_path = os.path.join(
+    #     get_package_share_directory("dualsense_teleop"),
+    #     "config",
+    #     "ur5_ros2_controllers.yaml",
+    # )
+
+    ros2_controllers_path = PathJoinSubstitution(
+        [FindPackageShare("dualsense_teleop"), "config", "ur5_ros2_controllers.yaml"]
     )
 
-    ros2_control_node = Node(
+    ur_contoller = PathJoinSubstitution(
+        [FindPackageShare("ur_robot_driver"), "config", "ur_controllers.yaml"]
+    )
+
+
+    ros2_control_node_fake = Node(
         package="controller_manager",
         executable="ros2_control_node",
         parameters=[robot_description, ros2_controllers_path],
         output="screen",
+        condition=IfCondition(use_fake_hardware),
+    )
+
+    ros2_control_node = Node(
+        package="ur_robot_driver",
+        executable="ur_ros2_control_node",
+        parameters=[
+            robot_description,
+            update_rate_config_file,
+            ParameterFile(ur_contoller, allow_substs=True),
+        ],
+        output="screen",
+        condition=UnlessCondition(use_fake_hardware),
     )
 
     joint_state_broadcaster_spawner = Node(
@@ -202,11 +281,21 @@ def generate_launch_description():
         ],
     )
 
-    ur_arm_controller_spawner = Node(
+    ur_arm_controller_spawner_fake = Node(
         package="controller_manager",
         executable="spawner",
         arguments=["forward_position_controller", "-c", "/controller_manager"],
+        condition=IfCondition(use_fake_hardware),
     )
+
+    ur_arm_controller_spawner = Node(
+        package="controller_manager",
+        executable="spawner",
+        # arguments=["scaled_joint_trajectory_controller", "-c", "/controller_manager"],
+        arguments=["forward_position_controller", "-c", "/controller_manager"],
+        condition=UnlessCondition(use_fake_hardware),
+    )
+
 
     return LaunchDescription(
         declared_arguments
@@ -215,7 +304,9 @@ def generate_launch_description():
             static_tf,
             pose_tracking_node,
             ros2_control_node,
+            ros2_control_node_fake,
             joint_state_broadcaster_spawner,
+            ur_arm_controller_spawner_fake,
             ur_arm_controller_spawner,
             robot_state_publisher,
         ]

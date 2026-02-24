@@ -277,9 +277,9 @@ class DualSensePoseTracking(Node):
         delta_z = left_stick_y * self.linear_scale * dt
 
         # Add delta to current position
-        target_pose.pose.position.x = current_ee_pose.pose.position.x + delta_x
-        target_pose.pose.position.y = current_ee_pose.pose.position.y + delta_y
-        target_pose.pose.position.z = current_ee_pose.pose.position.z + delta_z
+        target_pose.pose.position.x = current_ee_pose.pose.position.x - delta_y
+        target_pose.pose.position.y = current_ee_pose.pose.position.y + delta_x
+        target_pose.pose.position.z = current_ee_pose.pose.position.z - delta_z
 
         # Use filtered IMU orientation (from imu_filter_madgwick)
         target_pose.pose.orientation = self.imu_orientation
