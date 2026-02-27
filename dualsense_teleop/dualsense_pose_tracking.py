@@ -39,7 +39,7 @@ class DualSensePoseTracking(Node):
         self.declare_parameter('ee_frame', 'panda_link8')  # End effector frame
         self.declare_parameter('device_index', 0)  # DualSense device index
         self.declare_parameter('joystick_deadzone', 0.15)  # Joystick deadzone
-        self.declare_parameter('imu_topic', '/imu/data')  # Filtered IMU topic
+        self.declare_parameter('imu_topic', '/imu/data_offset')  # Filtered IMU topic
         self.declare_parameter('use_normalized_mapping', True)  # Use normalized [-1, 1] or raw values
 
         # Get parameters
