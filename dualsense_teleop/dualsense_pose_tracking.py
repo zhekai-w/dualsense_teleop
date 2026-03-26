@@ -52,6 +52,19 @@ class DualSensePoseTracking(Node):
         self.imu_topic = self.get_parameter('imu_topic').value
         self.use_normalized_mapping = self.get_parameter('use_normalized_mapping').value
 
+        # Home pose
+        self.home_pose = PoseStamped()
+        self.home_pose.header.frame_id = self.planning_frame
+        self.home_pose.pose.position.x = -0.044
+        self.home_pose.pose.position.y = 0.426
+        self.home_pose.pose.position.z = 0.427
+        self.home_pose.pose.orientation.x = 1.000
+        self.home_pose.pose.orientation.y = -0.015
+        self.home_pose.pose.orientation.z = 0.007
+        self.home_pose.pose.orientation.w = -0.017
+        self.r1_pressed = False
+        self.orientation_locked = False 
+
         # State variables
         self.left_stick = JoyStick(x=0.0, y=0.0)
         self.right_stick = JoyStick(x=0.0, y=0.0)
@@ -122,6 +135,12 @@ class DualSensePoseTracking(Node):
             self.controller.connection.on_change(self._on_connection_change)
             self.controller.exceptions.on_change(self._on_exception)
 
+            # R1 button for home pose
+            self.controller.btn_r1.on_change(self._on_r1_change)
+
+            # L1 button for orientation lock
+            self.controller.btn_l1.on_change(self._on_l1_change)
+
             # Optional: Stop on PS button
             self.controller.btn_ps.on_down(self._on_btn_ps)
 
@@ -186,6 +205,21 @@ class DualSensePoseTracking(Node):
         """Callback for exceptions"""
         self.get_logger().error(f'DualSense exception: {exception}')
 
+    def _on_r1_change(self, pressed: bool):
+        self.r1_pressed = pressed
+        if pressed:
+            # Set IMU orientation to home orientation
+            self.imu_orientation = self.home_pose.pose.orientation
+            self.orientation_locked = True
+            self.get_logger().info('R1 pressed - moving to home pose, orientation set to home')
+        else:
+            self.get_logger().info('R1 released - stopping at current pose')
+
+    def _on_l1_change(self, pressed: bool):
+        if pressed:
+            self.orientation_locked = False
+            self.get_logger().info('L1 pressed - orientation unlocked, will follow IMU')
+
     def _on_btn_ps(self):
         """Emergency stop on PS button"""
         self.get_logger().warn('PS button pressed - Emergency stop!')
@@ -194,7 +228,8 @@ class DualSensePoseTracking(Node):
 
     def imu_callback(self, msg: Imu):
         """Callback for filtered IMU data from imu_filter_madgwick"""
-        self.imu_orientation = msg.orientation
+        if not self.orientation_locked:
+            self.imu_orientation = msg.orientation
 
     def get_current_ee_pose(self) -> PoseStamped:
         """Get the current end-effector pose via TF2"""
@@ -249,10 +284,16 @@ class DualSensePoseTracking(Node):
         if current_ee_pose is None:
             return
 
-        # Create target pose starting from current EE pose
+        # Create target pose
         target_pose = PoseStamped()
         target_pose.header.frame_id = self.planning_frame
         target_pose.header.stamp = self.get_clock().now().to_msg()
+
+        # If R1 is held, move toward home pose
+        if self.r1_pressed:
+            self.home_pose.header.stamp = self.get_clock().now().to_msg()
+            self.target_pose_pub.publish(self.home_pose)
+            return
 
         # Extract joystick values
         # If normalized: already in [-1.0, 1.0]

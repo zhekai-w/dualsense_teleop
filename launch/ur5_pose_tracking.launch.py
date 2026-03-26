@@ -1,5 +1,6 @@
 from launch import LaunchDescription
-from launch.actions import DeclareLaunchArgument
+from launch.actions import DeclareLaunchArgument, RegisterEventHandler, TimerAction
+from launch.event_handlers import OnProcessStart
 from launch.substitutions import LaunchConfiguration, PathJoinSubstitution
 from launch_ros.actions import Node
 from launch_ros.substitutions import FindPackageShare
@@ -284,6 +285,7 @@ def generate_launch_description():
     ur_arm_controller_spawner_fake = Node(
         package="controller_manager",
         executable="spawner",
+        # arguments=["scaled_joint_trajectory_controller", "-c", "/controller_manager"],
         arguments=["forward_position_controller", "-c", "/controller_manager"],
         condition=IfCondition(use_fake_hardware),
     )
@@ -297,17 +299,32 @@ def generate_launch_description():
     )
 
 
+    # Delay pose_tracking_node until joint_state_broadcaster has started,
+    # giving the controller manager time to publish joint states.
+    delayed_pose_tracking = RegisterEventHandler(
+        OnProcessStart(
+            target_action=joint_state_broadcaster_spawner,
+            on_start=[
+                TimerAction(
+                    period=5.0,
+                    actions=[pose_tracking_node],
+                ),
+            ],
+        )
+    )
+
     return LaunchDescription(
         declared_arguments
         + [
             rviz_node,
             static_tf,
-            pose_tracking_node,
+            pose_tracking_node, 
             ros2_control_node,
             ros2_control_node_fake,
             joint_state_broadcaster_spawner,
             ur_arm_controller_spawner_fake,
             ur_arm_controller_spawner,
             robot_state_publisher,
+            # delayed_pose_tracking,
         ]
     )

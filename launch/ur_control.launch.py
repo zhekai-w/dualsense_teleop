@@ -586,7 +586,7 @@ def generate_launch_description():
     declared_arguments.append(
         DeclareLaunchArgument(
             "controller_spawner_timeout",
-            default_value="10",
+            default_value="60",
             description="Timeout used when spawning controllers.",
         )
     )
