@@ -299,20 +299,6 @@ def generate_launch_description():
     )
 
 
-    # Delay pose_tracking_node until joint_state_broadcaster has started,
-    # giving the controller manager time to publish joint states.
-    delayed_pose_tracking = RegisterEventHandler(
-        OnProcessStart(
-            target_action=joint_state_broadcaster_spawner,
-            on_start=[
-                TimerAction(
-                    period=5.0,
-                    actions=[pose_tracking_node],
-                ),
-            ],
-        )
-    )
-
     return LaunchDescription(
         declared_arguments
         + [
